@@ -169,12 +169,14 @@
     <ClCompile Include="..\Source\PWMAnalyzer.cpp" />
     <ClCompile Include="..\Source\PWMAnalyzerResults.cpp" />
     <ClCompile Include="..\Source\PWMAnalyzerSettings.cpp" />
+    <ClCompile Include="..\source\PwmData.cpp" />
     <ClCompile Include="..\Source\PWMSimulationDataGenerator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Source\PWMAnalyzer.h" />
     <ClInclude Include="..\Source\PWMAnalyzerResults.h" />
     <ClInclude Include="..\Source\PWMAnalyzerSettings.h" />
+    <ClInclude Include="..\source\PwmData.h" />
     <ClInclude Include="..\Source\PWMSimulationDataGenerator.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

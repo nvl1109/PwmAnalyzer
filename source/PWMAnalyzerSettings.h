@@ -4,6 +4,9 @@
 #include <AnalyzerSettings.h>
 #include <AnalyzerTypes.h>
 
+#define PWM_POR_HIGH 0
+#define PWM_POR_LOW  1
+
 class PWMAnalyzerSettings : public AnalyzerSettings
 {
 public:
@@ -17,11 +20,11 @@ public:
 
 	
 	Channel mInputChannel;
-	U32 mBitRate;
+	double mPolarity;
 
 protected:
 	std::auto_ptr< AnalyzerSettingInterfaceChannel >	mInputChannelInterface;
-	std::auto_ptr< AnalyzerSettingInterfaceInteger >	mBitRateInterface;
+	std::auto_ptr< AnalyzerSettingInterfaceNumberList >	mPolarityInterface;
 };
 
 #endif //PWM_ANALYZER_SETTINGS

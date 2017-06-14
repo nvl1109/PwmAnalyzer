@@ -4,27 +4,26 @@
 
 PWMAnalyzerSettings::PWMAnalyzerSettings()
 :	mInputChannel( UNDEFINED_CHANNEL ),
-	mBitRate( 9600 )
+	mPolarity( 0 )
 {
 	mInputChannelInterface.reset( new AnalyzerSettingInterfaceChannel() );
 	mInputChannelInterface->SetTitleAndTooltip( "Serial", "Standard PWM Analyzer" );
 	mInputChannelInterface->SetChannel( mInputChannel );
 
-	mBitRateInterface.reset( new AnalyzerSettingInterfaceInteger() );
-	mBitRateInterface->SetTitleAndTooltip( "Bit Rate (Bits/S)",  "Specify the bit rate in bits per second." );
-	mBitRateInterface->SetMax( 6000000 );
-	mBitRateInterface->SetMin( 1 );
-	mBitRateInterface->SetInteger( mBitRate );
+	mPolarityInterface.reset( new AnalyzerSettingInterfaceNumberList() );
+	mPolarityInterface->SetTitleAndTooltip( "Polarity",  "Specify the PWM polarity." );
+	mPolarityInterface->AddNumber(0, "High", "PWM high porality");
+	mPolarityInterface->AddNumber(1, "Low", "PWM low porality");
 
 	AddInterface( mInputChannelInterface.get() );
-	AddInterface( mBitRateInterface.get() );
+	AddInterface( mPolarityInterface.get() );
 
 	AddExportOption( 0, "Export as text/csv file" );
 	AddExportExtension( 0, "text", "txt" );
 	AddExportExtension( 0, "csv", "csv" );
 
 	ClearChannels();
-	AddChannel( mInputChannel, "Serial", false );
+	AddChannel( mInputChannel, "PWM", false );
 }
 
 PWMAnalyzerSettings::~PWMAnalyzerSettings()
@@ -34,7 +33,7 @@ PWMAnalyzerSettings::~PWMAnalyzerSettings()
 bool PWMAnalyzerSettings::SetSettingsFromInterfaces()
 {
 	mInputChannel = mInputChannelInterface->GetChannel();
-	mBitRate = mBitRateInterface->GetInteger();
+	mPolarity = mPolarityInterface->GetNumber();
 
 	ClearChannels();
 	AddChannel( mInputChannel, "PWM Analyzer", true );
@@ -45,7 +44,7 @@ bool PWMAnalyzerSettings::SetSettingsFromInterfaces()
 void PWMAnalyzerSettings::UpdateInterfacesFromSettings()
 {
 	mInputChannelInterface->SetChannel( mInputChannel );
-	mBitRateInterface->SetInteger( mBitRate );
+	mPolarityInterface->SetNumber( mPolarity );
 }
 
 void PWMAnalyzerSettings::LoadSettings( const char* settings )
@@ -54,7 +53,7 @@ void PWMAnalyzerSettings::LoadSettings( const char* settings )
 	text_archive.SetString( settings );
 
 	text_archive >> mInputChannel;
-	text_archive >> mBitRate;
+	text_archive >> mPolarity;
 
 	ClearChannels();
 	AddChannel( mInputChannel, "PWM Analyzer", true );
@@ -67,7 +66,7 @@ const char* PWMAnalyzerSettings::SaveSettings()
 	SimpleArchive text_archive;
 
 	text_archive << mInputChannel;
-	text_archive << mBitRate;
+	text_archive << mPolarity;
 
 	return SetReturnString( text_archive.GetString() );
 }

@@ -4,6 +4,7 @@
 #include <Analyzer.h>
 #include "PWMAnalyzerResults.h"
 #include "PWMSimulationDataGenerator.h"
+#include "PwmData.h"
 
 class PWMAnalyzerSettings;
 class ANALYZER_EXPORT PWMAnalyzer : public Analyzer2
@@ -24,15 +25,32 @@ public:
 protected: //vars
 	std::auto_ptr< PWMAnalyzerSettings > mSettings;
 	std::auto_ptr< PWMAnalyzerResults > mResults;
-	AnalyzerChannelData* mSerial;
+	AnalyzerChannelData* mPwm;
 
 	PWMSimulationDataGenerator mSimulationDataGenerator;
 	bool mSimulationInitilized;
 
 	//Serial analysis vars:
-	U32 mSampleRateHz;
-	U32 mStartOfStopBitOffset;
-	U32 mEndOfStopBitOffset;
+	float mMinPositivePulse;
+	float mMaxPositivePulse;
+	float mMinNegativePulse;
+	float mMaxNegativePulse;
+	float mMinPeriod;
+	float mMaxPeriod;
+	float mAvgPeriod;
+	float mMinFreq;
+	float mMaxFreq;
+	float mAvgFreq;
+
+	std::vector<PwmData> mPwmData;
+
+	void processData();
+	void calculateResult();
+
+private:
+	bool mIsEdgeFound;
+	bool mIsCalculationDone;
+	U64 mPrevSampleNumber;
 };
 
 extern "C" ANALYZER_EXPORT const char* __cdecl GetAnalyzerName();

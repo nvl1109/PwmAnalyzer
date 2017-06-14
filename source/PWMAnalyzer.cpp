@@ -5,7 +5,19 @@
 PWMAnalyzer::PWMAnalyzer()
 :	Analyzer2(),  
 	mSettings( new PWMAnalyzerSettings() ),
-	mSimulationInitilized( false )
+	mSimulationInitilized( false ),
+	mMinPositivePulse(0),
+	mMaxPositivePulse(0),
+	mMinNegativePulse(0),
+	mMaxNegativePulse(0),
+	mMinPeriod(0),
+	mMaxPeriod(0),
+	mAvgPeriod(0),
+	mMinFreq(0),
+	mMaxFreq(0),
+	mAvgFreq(0),
+	mIsCalculationDone(false),
+	mIsEdgeFound(false)
 {
 	SetAnalyzerSettings( mSettings.get() );
 }
@@ -24,52 +36,82 @@ void PWMAnalyzer::SetupResults()
 
 void PWMAnalyzer::WorkerThread()
 {
-	mSampleRateHz = GetSampleRate();
+	U64 tmp;
 
-	mSerial = GetAnalyzerChannelData( mSettings->mInputChannel );
+	mPwm = GetAnalyzerChannelData( mSettings->mInputChannel );
 
-	if( mSerial->GetBitState() == BIT_LOW )
-		mSerial->AdvanceToNextEdge();
+	for (;;) {
+		mPwm->AdvanceToNextEdge();
 
-	U32 samples_per_bit = mSampleRateHz / mSettings->mBitRate;
-	U32 samples_to_first_center_of_first_data_bit = U32( 1.5 * double( mSampleRateHz ) / double( mSettings->mBitRate ) );
+		// rising edge
+		if (mPwm->GetBitState() == BIT_HIGH) {
+			if (!mIsEdgeFound) {
+				mIsEdgeFound = true;
+				mPrevSampleNumber = mPwm->GetSampleNumber();
+				continue;
+			}
 
-	for( ; ; )
-	{
-		U8 data = 0;
-		U8 mask = 1 << 7;
-		
-		mSerial->AdvanceToNextEdge(); //falling edge -- beginning of the start bit
+			tmp = mPwm->GetSampleNumber();
+			Frame frame;
+			frame.mStartingSampleInclusive = mPrevSampleNumber;
+			frame.mEndingSampleInclusive = tmp;
+			frame.mData1 = 'L';
+			frame.mFlags = DISPLAY_AS_WARNING_FLAG;
+			mResults->AddFrame(frame);
 
-		U64 starting_sample = mSerial->GetSampleNumber();
 
-		mSerial->Advance( samples_to_first_center_of_first_data_bit );
-
-		for( U32 i=0; i<8; i++ )
-		{
-			//let's put a dot exactly where we sample this bit:
-			mResults->AddMarker( mSerial->GetSampleNumber(), AnalyzerResults::Dot, mSettings->mInputChannel );
-
-			if( mSerial->GetBitState() == BIT_HIGH )
-				data |= mask;
-
-			mSerial->Advance( samples_per_bit );
-
-			mask = mask >> 1;
+			mPrevSampleNumber = tmp;
+			mResults->CommitResults();
 		}
 
-
-		//we have a byte to save. 
-		Frame frame;
-		frame.mData1 = data;
-		frame.mFlags = 0;
-		frame.mStartingSampleInclusive = starting_sample;
-		frame.mEndingSampleInclusive = mSerial->GetSampleNumber();
-
-		mResults->AddFrame( frame );
-		mResults->CommitResults();
-		ReportProgress( frame.mEndingSampleInclusive );
+		ReportProgress(mPwm->GetSampleNumber());
+		CheckIfThreadShouldExit();
 	}
+
+}
+
+void PWMAnalyzer::processData() {
+	int polarity = mSettings->mPolarity;
+	U32 tmp;
+
+	if (!mIsEdgeFound) {
+		// Find the first edge
+		do {
+			CheckIfThreadShouldExit();
+			mPwm->AdvanceToNextEdge();
+			if (mPwm->GetBitState() == BIT_HIGH) {
+				// edge found
+				mIsEdgeFound = true;
+				mPrevSampleNumber = mPwm->GetSampleNumber();
+				//mResults->AddMarker(mPrevSampleNumber, AnalyzerResults::Square, mSettings->mInputChannel);
+			}
+			ReportProgress(mPwm->GetSampleNumber());
+		} while (!mIsEdgeFound); 
+	} else {
+		bool isNext = false;
+		// find next period
+		mPwm->AdvanceToNextEdge();
+		tmp = mPwm->GetSampleNumber();
+
+		if (mPwm->GetBitState() == BIT_HIGH) {
+			mResults->AddMarker(tmp, AnalyzerResults::ErrorSquare, mSettings->mInputChannel);
+			Frame frame;
+			frame.mStartingSampleInclusive = mPrevSampleNumber;
+			frame.mEndingSampleInclusive = tmp;
+			frame.mData1 = 'L';
+			frame.mFlags = DISPLAY_AS_WARNING_FLAG;
+			mResults->AddFrame(frame);
+			mResults->AddResultString("T");
+			mPrevSampleNumber = tmp;
+		}
+		
+		mResults->CommitResults();
+	}
+	ReportProgress(mPwm->GetSampleNumber());
+}
+
+void PWMAnalyzer::calculateResult() {
+
 }
 
 bool PWMAnalyzer::NeedsRerun()
@@ -90,7 +132,7 @@ U32 PWMAnalyzer::GenerateSimulationData( U64 minimum_sample_index, U32 device_sa
 
 U32 PWMAnalyzer::GetMinimumSampleRateHz()
 {
-	return mSettings->mBitRate * 4;
+	return 0;
 }
 
 const char* PWMAnalyzer::GetAnalyzerName() const

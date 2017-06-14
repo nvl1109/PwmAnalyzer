@@ -38,7 +38,7 @@ U32 PWMSimulationDataGenerator::GenerateSimulationData( U64 largest_sample_reque
 
 void PWMSimulationDataGenerator::CreateSerialByte()
 {
-	U32 samples_per_bit = mSimulationSampleRateHz / mSettings->mBitRate;
+	U32 samples_per_bit = mSimulationSampleRateHz;
 
 	U8 byte = mSerialText[ mStringIndex ];
 	mStringIndex++;
